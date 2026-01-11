@@ -1,0 +1,330 @@
+---
+title: "Unit 1 Paper Version 2"
+author: "Emmalyn Campau"
+date: "2023-09-24"
+output:
+  word_document: default
+  pdf_document: default
+---
+This file contains code that analyzes a dataset from Israels' COVID-19 dashboard. The goal of the project is to determine rates of severe disease and to estimate vaccine efficacy. The 95% confidence interval for the estimated rates of disease in both vaccinated and unvaccinated subpopulations was calculated using the Agresti-Coull method for each age group and for the entire sample. Next, the estimated vaccine efficacies for each of these age groups were calculated. Finally, I calculated the age-standardized vaccine efficacy for the entire sample.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DescTools)
+```
+
+```{r readData}
+# Read in the data for vaccines and COVID in Israel
+# Store in dataset titled 'data'
+data <- read.csv("https://dept.stat.lsa.umich.edu/~bbh/s485/data/israeli_covid_2021_08_15.csv")
+```
+
+##### Part 1: In this section of code, the 95% confidence interval for the underlying rates of severe disease in the vaccinated (pa(v)) and unvaccinated (pa(u)) subpopulations was calculated for each age group.
+
+```{r part1}
+# For each age group a, a 95% confidence interval for the underlying rates of severe disease in the vaccinated (pa(v)) and unvaccinated (pa(u)) subpopulations
+
+# function - define the Agresti-Coull Interval (95% interval)
+ac_CI <- function(n, phat) {
+  k = qnorm(0.975) # same thing as qnorm(1 - (1 - confidence level) / 2)
+  #Agresti-Coull
+  X_tilde = ((phat*n) + k^2/2)
+  n_tilde = n + k^2
+  p_tilde = X_tilde / n_tilde
+  q_tilde = 1 - p_tilde
+  
+  upper_bound <- p_tilde + (k*sqrt(p_tilde*q_tilde)/sqrt(n_tilde))
+  lower_bound <- p_tilde - (k*sqrt(p_tilde*q_tilde)/sqrt(n_tilde))
+  interval <- c(lower_bound, upper_bound)
+  interval
+}
+
+# sanity check for the Agresti Coull funciton
+# function output
+test_function <- ac_CI(2573902, 2/2573903)
+test_function
+# actual
+actual_lower <- ((2 +(1.96^2)/2) / (2573903 + (1.96^2))) - (1.96*sqrt(((2 +(1.96^2)/2)) /
+                (2573903 + (1.96^2))*(1 - (((2 +(1.96^2)/2)) / (2573903 + (1.96^2)))))/sqrt(2573903 + (1.96^2)))
+actual_lower
+actual_upper <- ((2 +(1.96^2)/2) / (2573903 + (1.96^2))) + (1.96*sqrt(((2 +(1.96^2)/2)) /
+                (2573903 + (1.96^2))*(1 - (((2 +(1.96^2)/2)) / (2573903 + (1.96^2)))))/sqrt(2573903 + (1.96^2)))
+actual_upper
+
+# Age group 12-39 [1]
+#vaccinated
+phat_vax_1 <- (2/2573903)
+vax_interval_1 <- ac_CI(2573902, phat_vax_1)
+vax_interval_1
+#unvaccinated
+phat_unvax_1 <- (19/971478)
+unvax_interval_1 <- ac_CI(971478, phat_unvax_1)
+unvax_interval_1
+
+# Age group 40-49 [2]
+#vaccinated
+phat_vax_2 <- (9/927214)
+vax_interval_2 <- ac_CI(927214, phat_vax_2)
+vax_interval_2
+#unvaccinated
+phat_unvax_2 <- (24/145355)
+unvax_interval_2 <- ac_CI(145355, phat_unvax_2)
+unvax_interval_2
+
+# Age group 50-59 [3]
+#vaccinated
+phat_vax_3 <- (22/747949)
+vax_interval_3 <- ac_CI(747949, phat_vax_3)
+vax_interval_3
+#unvaccinated
+phat_unvax_3 <- (34/84545)
+unvax_interval_3 <- ac_CI(84545, phat_unvax_3)
+unvax_interval_3
+
+# age group 60-69 [4]
+#vaccinated
+phat_vax_4 <- (58/665717)
+vax_interval_4 <- ac_CI(665717, phat_vax_4)
+vax_interval_4
+#unvaccinated
+phat_unvax_4 <- (50/65205)
+unvax_interval_4 <- ac_CI(65205, phat_unvax_4)
+unvax_interval_4
+
+# age group 70-79 [5]
+#vaccinated
+phat_vax_5 <- (92/464336)
+vax_interval_5 <- ac_CI(464336, phat_vax_5)
+vax_interval_5
+#unvaccinated
+phat_unvax_5 <- (39/20512)
+unvax_interval_5 <- ac_CI(20512, phat_unvax_5)
+unvax_interval_5
+
+# age group 80-89 [6]
+#vaccinated
+phat_vax_6 <- (100/208911)
+vax_interval_6 <- ac_CI(208911, phat_vax_6)
+vax_interval_6
+#unvaccinated
+phat_unvax_6 <- (32/12683)
+unvax_interval_6 <- ac_CI(12683, phat_unvax_6)
+unvax_interval_6
+
+# age group 90+ [7]
+#vaccinated
+phat_vax_7 <- (18/46602)
+vax_interval_7 <- ac_CI(46602, phat_vax_7)
+vax_interval_7
+#unvaccinated
+phat_unvax_7 <- (16/3132)
+unvax_interval_7 <- ac_CI(3132, phat_unvax_7)
+unvax_interval_7
+
+# age group all 12+ [8]
+#vaccinated
+phat_vax_8 <- (301/5634632)
+vax_interval_8 <- ac_CI(5634632, phat_vax_8)
+vax_interval_8
+#unvaccinated
+phat_unvax_8 <- (214/1302910)
+unvax_interval_8 <- ac_CI(1302910, phat_unvax_8)
+unvax_interval_8
+
+#display results in a table
+matrix_data = matrix(c(vax_interval_1, unvax_interval_1, vax_interval_2, 
+                       unvax_interval_2, vax_interval_3, unvax_interval_3,
+                       vax_interval_4, unvax_interval_4, vax_interval_5,
+                       unvax_interval_5, vax_interval_6, unvax_interval_6,
+                       vax_interval_7, unvax_interval_7, vax_interval_8,
+                       unvax_interval_8), ncol=4, byrow=TRUE)
+#matrix_data
+# specify the column names and row names of matrix
+colnames(matrix_data) = c('Vax Lower Limit','Vax Upper Limit', 'Unvax Lower Limit', 'Unvax Upper Limit')
+rownames(matrix_data) <- c('12-39','40-49','50-59','60-69', '70-79', '80-89', '90+', 'all 12+')
+
+# assign to table
+final=as.table(matrix_data)
+ 
+# display
+final
+```
+##### Part 2: In this section of code, the vaccine efficacy was calculated for each age group and for the total population.
+
+```{r part2}
+# Equation for vaccine efficacy
+efficacy <- function(p_vax, p_unvax) {
+  true_values = 1 - (p_vax/p_unvax)
+  true_values
+}
+# For point estimates, run function efficacy with phats from part 1
+
+# Age group 12-39 [1]
+point_val1 <- efficacy(phat_vax_1, phat_unvax_1)
+point_val1 <- signif(point_val1, 3)
+point_val1
+
+# Find the lower bound using the largest value of pv/pu
+vax_interval_1[1]
+vax_interval_1[2]
+estimate_lower1 <- efficacy(vax_interval_1[2], unvax_interval_1[1])
+estimate_lower1 <- signif(estimate_lower1, 3)
+estimate_lower1
+# Find the upper bound using the smallest value of pv/pu
+estimate_upper1 <- efficacy(vax_interval_1[1], unvax_interval_1[2])
+estimate_upper1 <- signif(estimate_upper1, 3)
+estimate_upper1
+
+# Age group 40-49 [2]
+# point estimate for ages 40-49
+point_val2 <- efficacy(phat_vax_2, phat_unvax_2)
+point_val2 <- signif(point_val2, 3)
+point_val2
+
+# confidence interval 
+# Find the lower bound using the largest value of pv/pu
+vax_interval_2[2]
+unvax_interval_2[1]
+estimate_lower2 <- 1 - (vax_interval_2[2]/unvax_interval_2[1])
+estimate_lower2 <- signif(estimate_lower2, 3)
+estimate_lower2
+estimate_upper2 <- efficacy(vax_interval_2[1], unvax_interval_2[2])
+estimate_upper2 <- signif(estimate_upper2, 3)
+estimate_upper2
+
+
+# Age group 50-59 [3]
+# point estimate for ages 50-59
+point_val3 <- efficacy(phat_vax_3, phat_unvax_3)
+point_val3 <- signif(point_val3, 3)
+point_val3
+
+# confidence interval
+estimate_lower3 <- efficacy(vax_interval_3[2], unvax_interval_3[1])
+estimate_lower3 <- signif(estimate_lower3, 3)
+estimate_lower3
+estimate_upper3 <- efficacy(vax_interval_3[1], unvax_interval_3[2])
+estimate_upper3 <- signif(estimate_upper3, 3)
+estimate_upper3
+
+# Age group 60-69 [4]
+# point estimate for ages 60-69
+point_val4 <- efficacy(phat_vax_4, phat_unvax_4)
+point_val4 <- signif(point_val4, 3)
+point_val4
+
+# confidence interval
+estimate_lower4 <- efficacy(vax_interval_4[2], unvax_interval_4[1])
+estimate_lower4 <- signif(estimate_lower4, 3)
+estimate_lower4
+estimate_upper4 <- efficacy(vax_interval_4[1], unvax_interval_4[2])
+estimate_upper4 <- signif(estimate_upper4, 3)
+estimate_upper4
+
+
+# Age group 70-79 [5]
+# point estimate for ages 70-79
+point_val5 <- efficacy(phat_vax_5, phat_unvax_5)
+point_val5 <- signif(point_val5, 3)
+point_val5
+
+# confidence interval
+estimate_lower5 <- efficacy(vax_interval_5[2], unvax_interval_5[1])
+estimate_lower5 <- signif(estimate_lower5, 3)
+estimate_lower5
+estimate_upper5 <- efficacy(vax_interval_5[1], unvax_interval_5[2])
+estimate_upper5 <- signif(estimate_upper5, 3)
+estimate_upper5
+
+# Age group 80-89 [6]
+# point estimate for ages 80-89
+point_val6 <- efficacy(phat_vax_6, phat_unvax_6)
+point_val6 <- signif(point_val6, 3)
+point_val6
+
+# confidence interval
+estimate_lower6 <- efficacy(vax_interval_6[2], unvax_interval_6[1])
+estimate_lower6 <- signif(estimate_lower6, 3)
+estimate_lower6
+estimate_upper6 <- efficacy(vax_interval_6[1], unvax_interval_6[2])
+estimate_upper <- signif(estimate_upper6, 3)
+estimate_upper6
+
+
+# Age group 90+ [7]
+# point estimate for ages 90+
+point_val7 <- efficacy(phat_vax_7, phat_unvax_7)
+point_val7 <- signif(point_val7, 3)
+point_val7
+
+# confidence interval
+estimate_lower7 <- efficacy(vax_interval_7[2], unvax_interval_7[1])
+estimate_lower7 <- signif(estimate_lower7, 3)
+estimate_lower7
+estimate_upper7 <- efficacy(vax_interval_7[1], unvax_interval_7[2])
+estimate_upper7 <- signif(estimate_upper7, 3)
+estimate_upper7
+
+
+# Age group all 12+ [8]
+# point estimate for all ages 12+
+point_val8 <- efficacy(phat_vax_8, phat_unvax_8)
+point_val8 <- signif(point_val8, 3)
+point_val8
+
+# confidence interval
+estimate_lower8 <- efficacy(vax_interval_8[2], unvax_interval_8[1])
+estimate_lower8 <- signif(estimate_lower8, 3)
+estimate_lower8
+estimate_upper8 <- efficacy(vax_interval_8[1], unvax_interval_8[2])
+estimate_upper8 <- signif(estimate_upper8, 3)
+estimate_upper8
+
+# Organize results into table
+matrix_data_efficacy = matrix(c(point_val1, estimate_lower1, estimate_upper1, 
+                                point_val2, estimate_lower2, estimate_upper2,
+                                point_val3, estimate_lower3, estimate_upper3,
+                                point_val4, estimate_lower4, estimate_upper4,
+                                point_val5, estimate_lower5, estimate_upper5,
+                                point_val6, estimate_lower6, estimate_upper6,
+                                point_val7, estimate_lower7, estimate_upper7,
+                                point_val8, estimate_lower8, estimate_upper8), 
+                                ncol=3, byrow=TRUE)
+#matrix_data
+# specify the column names and row names of matrix
+colnames(matrix_data_efficacy) = c('Vaccine Efficacy Point Estimate',
+                                   'Vaccine Efficacy Lower Limit', 
+                                   'Vaccine Efficacy Upper Limit')
+rownames(matrix_data_efficacy) <- c('12-39','40-49','50-59','60-69', '70-79', 
+                                    '80-89', '90+', 'all 12+')
+
+# assign to table
+final=as.table(matrix_data_efficacy)
+ 
+# display
+final
+```
+
+##### Part 3: Here, the age standardized vaccine efficacy is calculated
+
+``` {r part3}
+# Standardize the vaccine efficacy
+efficacy_age1 = (1 - (phat_vax_1)/(phat_unvax_1)) * ((971478 + 2573903)/ (1302910+5634632)) #12-39
+efficacy_age2 = (1 - (phat_vax_1/phat_unvax_2)) * ((145355 + 927214)/ (1302910+5634632))  #40-49
+efficacy_age3 = (1 - (phat_vax_3/phat_unvax_3)) * ((84545 + 747949)/(1302910+5634632))  #50-59
+efficacy_age4 = (1 - (phat_vax_4/phat_unvax_4)) * ((65205 + 665717) / (1302910+5634632)) #60-69
+efficacy_age5 = (1 - (phat_vax_5/phat_unvax_5)) * ((20512 + 464336)/(1302910+5634632))  #70-79
+efficacy_age6 = (1 - (phat_vax_6/phat_unvax_6)) * ((12683 + 208911)/(1302910+5634632))  #80-89
+efficacy_age7 = (1 - (phat_vax_7/phat_unvax_7)) * ((3132 + 46602)/(1302910+5634632))   #90+
+total = efficacy_age1 + efficacy_age2 + efficacy_age3 + efficacy_age4 + 
+        efficacy_age5 + efficacy_age6 + efficacy_age7
+total
+
+# Compare to the actual
+efficacy_observed = 1 - (301/5634632)/(214/1302910)
+efficacy_observed
+
+diff = total - efficacy_observed
+diff
+```
+
